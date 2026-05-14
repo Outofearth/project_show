@@ -108,7 +108,7 @@ const generateStaticData = () => {
   console.log('开始生成静态数据...')
 
   const projects: ProjectData[] = []
-  const publicDir = path.join(__dirname, 'public')
+  const publicDir = path.join(__dirname, '..', 'public')
 
   if (!fs.existsSync(publicDir)) {
     console.error('public 目录不存在')
@@ -141,7 +141,7 @@ const generateStaticData = () => {
     projects
   }
 
-  const outputPath = path.join(__dirname, 'public', 'static-data.json')
+  const outputPath = path.join(__dirname, '..', 'public', 'static-data.json')
   fs.writeFileSync(outputPath, JSON.stringify(outputData, null, 2), 'utf-8')
 
   console.log(`\n✅ 静态数据已生成:`)
