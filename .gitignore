@@ -18,12 +18,17 @@ dist-ssr
 *.mkv
 *.webm
 
-# 忽略图片文件
+# 忽略图片文件（但不忽略 public 目录下的）
 *.jpg
 *.jpeg
 *.png
 *.gif
 *.webp
+!public/**/*.jpg
+!public/**/*.jpeg
+!public/**/*.png
+!public/**/*.gif
+!public/**/*.webp
 
 # 忽略其他大文件
 *.7z
