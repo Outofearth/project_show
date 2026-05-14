@@ -65,7 +65,6 @@ export const shouldUseStaticData = (): boolean => {
   if (typeof window === 'undefined') return false
   
   const isProduction = import.meta.env.PROD
-  const hasStaticFile = true // 假设构建时会生成此文件
   
   return isProduction || isStaticEnvironment()
 }
