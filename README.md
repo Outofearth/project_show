@@ -1,6 +1,12 @@
 # AI设计作品集展示平台
 
-一个基于 Vue 3 + TypeScript + TailwindCSS 的AI设计作品集展示平台，支持多项目管理、图片浏览、Prompt查看等功能。
+一个基于 Vue 3 + TypeScript + TailwindCSS 的AI设计作品集展示平台，支持多项目管理、图片浏览、视频播放、Prompt查看等功能。
+
+## 🌐 在线演示
+
+**GitHub Pages 地址：** [https://outofearth.github.io/project_show/](https://outofearth.github.io/project_show/)
+
+> ⚠️ **注意**：GitHub Pages 版本为静态演示版本，仅包含示例数据。如需完整功能（挂载文件夹、动态扫描等），请使用本地开发模式。
 
 ## 🎯 功能特性
 
@@ -78,6 +84,30 @@ npm run build
 ```bash
 npm run preview
 ```
+
+### GitHub Pages 部署
+
+本项目已配置 **GitHub Actions** 自动部署到 GitHub Pages。
+
+**自动部署流程：**
+1. 推送代码到 `main` 分支
+2. GitHub Actions 自动触发构建和部署
+3. 几分钟后即可访问在线版本
+
+**手动构建（用于本地测试 GitHub Pages 版本）：**
+
+```bash
+# 生成静态数据并构建
+npm run build:github
+
+# 预览构建结果
+npm run preview
+```
+
+**部署配置说明：**
+- 静态数据文件：`public/static-data.json`（由 `scripts/generate-static-data.ts` 自动生成）
+- 构建输出目录：`dist/`
+- 基础路径：`/project_show/`（自动设置）
 
 ## 🔐 授权说明
 

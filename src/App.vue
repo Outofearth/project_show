@@ -8,6 +8,7 @@ import UnlockModal from './components/UnlockModal.vue'
 import MountDialog from './components/MountDialog.vue'
 import { projects as defaultProjects, type ProjectItem } from './data/projects'
 import { scanProjects, type FolderItem } from './utils/scanner'
+import { loadStaticData, shouldUseStaticData } from './utils/static-data'
 
 const projects = ref<ProjectItem[]>([])
 const isLoading = ref(false)
@@ -17,6 +18,7 @@ const isUnlocked = ref(false)
 const showUnlockModal = ref(false)
 const showMobileMenu = ref(false)
 const showMountDialog = ref(false)
+const isStaticMode = ref(false)
 
 const currentProject = computed(() => {
   return projects.value.find(p => p.id === activeProjectId.value) || null
@@ -62,18 +64,37 @@ const handleUnlock = () => {
 const loadProjects = async () => {
   isLoading.value = true
   try {
-    const scannedProjects = await scanProjects()
-    if (scannedProjects.length > 0) {
-      projects.value = scannedProjects
+    if (shouldUseStaticData()) {
+      console.log('📦 使用静态数据模式（GitHub Pages）')
+      const staticProjects = await loadStaticData()
+      isStaticMode.value = true
+      
+      if (staticProjects.length > 0) {
+        projects.value = staticProjects as any
+      } else {
+        projects.value = defaultProjects
+        console.warn('⚠️ 静态数据为空，使用默认项目')
+      }
     } else {
-      projects.value = defaultProjects
+      console.log('🔧 使用动态扫描模式（本地开发）')
+      const scannedProjects = await scanProjects()
+      
+      if (scannedProjects.length > 0) {
+        projects.value = scannedProjects
+      } else {
+        projects.value = defaultProjects
+      }
     }
+
     if (projects.value.length > 0 && !activeProjectId.value) {
       activeProjectId.value = projects.value[0].id
     }
+    
+    console.log(`✅ 已加载 ${projects.value.length} 个项目`)
   } catch (error) {
     console.error('加载项目失败:', error)
     projects.value = defaultProjects
+    
     if (projects.value.length > 0 && !activeProjectId.value) {
       activeProjectId.value = projects.value[0].id
     }
@@ -119,6 +140,7 @@ onMounted(() => {
           </div>
           <div class="flex items-center gap-3">
             <button
+              v-if="!isStaticMode"
               @click="showMountDialog = true"
               class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
               title="挂载外部文件夹"
