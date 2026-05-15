@@ -26,6 +26,7 @@ export interface StaticProjectData {
 
 export interface StaticDataResponse {
   generatedAt: string
+  authorizationCode: string
   projects: StaticProjectData[]
 }
 
@@ -43,7 +44,7 @@ const isStaticEnvironment = (): boolean => {
 /**
  * 从静态 JSON 文件加载数据
  */
-export const loadStaticData = async (): Promise<StaticProjectData[]> => {
+export const loadStaticData = async (): Promise<StaticDataResponse> => {
   try {
     const response = await fetch('/project_show/static-data.json')
     if (!response.ok) {
@@ -52,10 +53,14 @@ export const loadStaticData = async (): Promise<StaticProjectData[]> => {
     
     const data: StaticDataResponse = await response.json()
     console.log('✅ 已加载静态数据，生成时间:', data.generatedAt)
-    return data.projects
+    return data
   } catch (error) {
     console.error('加载静态数据失败:', error)
-    return []
+    return {
+      generatedAt: new Date().toISOString(),
+      authorizationCode: 'design2026',
+      projects: []
+    }
   }
 }
 

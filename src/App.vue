@@ -20,6 +20,7 @@ const showUnlockModal = ref(false)
 const showMobileMenu = ref(false)
 const showMountDialog = ref(false)
 const isStaticMode = ref(false)
+const authorizationCode = ref('design2026')
 
 const currentProject = computed(() => {
   return projects.value.find(p => p.id === activeProjectId.value) || null
@@ -67,11 +68,16 @@ const loadProjects = async () => {
   try {
     if (shouldUseStaticData()) {
       console.log('📦 使用静态数据模式（GitHub Pages）')
-      const staticProjects = await loadStaticData()
+      const staticData = await loadStaticData()
       isStaticMode.value = true
       
-      if (staticProjects.length > 0) {
-        projects.value = staticProjects as any
+      if (staticData.authorizationCode) {
+        authorizationCode.value = staticData.authorizationCode
+        console.log('🔑 使用静态数据中的授权码')
+      }
+      
+      if (staticData.projects.length > 0) {
+        projects.value = staticData.projects as any
       } else {
         projects.value = defaultProjects
         console.warn('⚠️ 静态数据为空，使用默认项目')
@@ -214,6 +220,7 @@ onMounted(() => {
 
     <UnlockModal 
       :visible="showUnlockModal"
+      :auth-code="authorizationCode"
       @close="showUnlockModal = false"
       @unlock="handleUnlock"
     />

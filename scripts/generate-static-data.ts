@@ -41,6 +41,12 @@ interface ProjectData {
   folders: FolderData[]
 }
 
+interface StaticDataResponse {
+  generatedAt: string
+  authorizationCode: string
+  projects: ProjectData[]
+}
+
 const getTextContent = (folderPath: string): string => {
   try {
     const files = fs.readdirSync(folderPath)
@@ -125,8 +131,13 @@ const scanFolder = (basePath: string, projectId: string, relativePath: string = 
   return folders
 }
 
+const DEFAULT_AUTH_CODE = 'design2026'
+
 const generateStaticData = () => {
   console.log('开始生成静态数据...')
+
+  const authCode = process.env.AUTHORIZATION_CODE || DEFAULT_AUTH_CODE
+  console.log(`使用授权码: ${authCode === DEFAULT_AUTH_CODE ? '(默认)' : '(自定义)'}`)
 
   const projects: ProjectData[] = []
   const publicDir = path.join(__dirname, '..', 'public')
@@ -157,8 +168,9 @@ const generateStaticData = () => {
     }
   }
 
-  const outputData = {
+  const outputData: StaticDataResponse = {
     generatedAt: new Date().toISOString(),
+    authorizationCode: authCode,
     projects
   }
 

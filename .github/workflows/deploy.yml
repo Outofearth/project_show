@@ -34,6 +34,7 @@ jobs:
         run: npx tsx scripts/generate-static-data.ts
         env:
           NODE_ENV: production
+          AUTHORIZATION_CODE: ${{ secrets.AUTHORIZATION_CODE }}
 
       - name: Build
         run: npm run build

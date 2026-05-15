@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Lock, X, Key } from 'lucide-vue-next'
-import { AUTHORIZATION_CODE } from '../data/projects'
 
-defineProps<{
+const props = defineProps<{
   visible: boolean
+  authCode?: string
 }>()
 
 const emit = defineEmits<{
@@ -15,8 +15,10 @@ const emit = defineEmits<{
 const inputCode = ref('')
 const errorMessage = ref('')
 
+const authorizationCode = computed(() => props.authCode || 'design2026')
+
 const handleSubmit = () => {
-  if (inputCode.value === AUTHORIZATION_CODE) {
+  if (inputCode.value === authorizationCode.value) {
     emit('unlock')
     inputCode.value = ''
     errorMessage.value = ''
