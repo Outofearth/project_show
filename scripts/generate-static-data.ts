@@ -32,12 +32,31 @@ interface FolderData {
   images: { name: string; path: string; type: 'image' }[]
   videos: { name: string; path: string; type: 'video' }[]
   media: MediaItem[]
+  textContent?: string
 }
 
 interface ProjectData {
   id: string
   name: string
   folders: FolderData[]
+}
+
+const getTextContent = (folderPath: string): string => {
+  try {
+    const files = fs.readdirSync(folderPath)
+    const textFiles = files.filter(file => {
+      const lowerName = file.toLowerCase()
+      return lowerName.endsWith('.txt') || lowerName.endsWith('.md')
+    })
+
+    if (textFiles.length > 0) {
+      const textFilePath = path.join(folderPath, textFiles[0])
+      return fs.readFileSync(textFilePath, 'utf-8')
+    }
+  } catch {
+    // ignore
+  }
+  return ''
 }
 
 const scanFolder = (basePath: string, projectId: string, relativePath: string = ''): FolderData[] => {
@@ -81,6 +100,7 @@ const scanFolder = (basePath: string, projectId: string, relativePath: string = 
           .sort((a, b) => a.name.localeCompare(b.name))
 
         const media: MediaItem[] = [...images, ...videos]
+        const textContent = getTextContent(folderFullPath)
 
         if (images.length > 0 || videos.length > 0) {
           folders.push({
@@ -88,7 +108,8 @@ const scanFolder = (basePath: string, projectId: string, relativePath: string = 
             path: `${projectId}/${folderRelativePath}`,
             images,
             videos,
-            media
+            media,
+            textContent: textContent || undefined
           })
         }
       } catch (err) {

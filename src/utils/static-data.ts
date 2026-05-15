@@ -15,6 +15,7 @@ export interface StaticFolderData {
   images: { name: string; path: string; type: 'image' }[]
   videos: { name: string; path: string; type: 'video' }[]
   media: StaticMediaItem[]
+  textContent?: string
 }
 
 export interface StaticProjectData {

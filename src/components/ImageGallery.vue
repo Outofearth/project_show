@@ -81,7 +81,8 @@ const getMediaUrl = (mediaPath: string): string => {
     }
     return `/mounted/${mediaPath}`
   }
-  return `/${mediaPath}`
+  const base = import.meta.env.GITHUB_PAGES ? '/project_show/' : '/'
+  return `${base}${mediaPath}`
 }
 
 watch(() => props.folder, () => {
@@ -113,6 +114,12 @@ watch(currentIndex, () => {
 
 const loadPromptContent = async () => {
   if (!props.folder) return
+  
+  if (props.folder.textContent) {
+    promptContent.value = props.folder.textContent
+    return
+  }
+  
   try {
     promptContent.value = await loadTextFile(props.folder.path)
   } catch (error) {

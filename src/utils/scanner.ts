@@ -20,6 +20,7 @@ export interface FolderItem {
   media: MediaItem[]
   subfolders?: FolderItem[]
   isMounted?: boolean
+  textContent?: string
 }
 
 export interface ProjectItem {
