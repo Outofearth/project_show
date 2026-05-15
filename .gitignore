@@ -41,6 +41,10 @@ dist-ssr
 .git_backup/
 backup*/
 
+# 开发文档（不上传到 GitHub）
+PROBLEM_SUMMARY.md
+DEVELOPMENT_REPORT.md
+
 
 # Editor directories and files
 .vscode/*

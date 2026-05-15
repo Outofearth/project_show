@@ -156,9 +156,6 @@ npm run preview
 
 ## 📱 移动端支持
 
-移动端访问地址（手机连接同一WiFi）：
-- http://192.168.1.5:5175/
-
 ### 移动端功能
 - 响应式布局，适配各种屏幕尺寸
 - 触摸手势支持（滑动切换、双指缩放）
@@ -179,74 +176,6 @@ npm run preview
 1. 在对应项目文件夹内创建新文件夹
 2. 添加图片文件和说明文件
 3. 点击刷新按钮，新分类会自动显示
-
-## 📦 项目迁移
-
-### 迁移准备
-
-**需要复制的文件：**
-
-```
-project_show/
-├── src/                    # ✅ 必须复制
-├── public/                 # ✅ 必须复制（图片资源）
-├── package.json            # ✅ 必须复制
-├── vite.config.ts          # ✅ 必须复制
-├── tailwind.config.js      # ✅ 必须复制
-├── tsconfig.json           # ✅ 必须复制
-└── index.html              # ✅ 必须复制
-```
-
-**不需要复制的文件夹：**
-- `node_modules/` （会在新电脑重新安装）
-- `dist/` （会在新电脑重新构建）
-
-### 迁移步骤
-
-**步骤1：打包项目**
-
-```bash
-# Windows PowerShell
-Compress-Archive -Path * -DestinationPath project_show.zip -Force
-```
-
-**步骤2：传输到新电脑**
-
-通过 U盘、网盘、Git仓库等方式传输。
-
-**步骤3：在新电脑上部署**
-
-```bash
-# 1. 解压项目
-cd D:\Projects\project_show
-
-# 2. 安装依赖
-npm install
-
-# 3. 启动开发服务器
-npm run dev
-
-# 4. 访问地址：http://localhost:5175/
-```
-
-### 生产部署迁移
-
-如果只需要运行查看，不需要开发：
-
-```bash
-# 在原电脑构建
-npm run build
-
-# 将 dist/ 文件夹复制到新电脑
-# 使用静态服务器运行
-npx serve dist
-```
-
-### 注意事项
-
-- 需要在新电脑安装 Node.js >= 18
-- 修改授权码：通过 GitHub Secrets 设置，或编辑 `src/data/projects.ts` 文件
-- 迁移后图片路径保持不变，无需额外配置
 
 ## 📄 许可证
 
