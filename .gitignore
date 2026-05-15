@@ -45,6 +45,9 @@ backup*/
 PROBLEM_SUMMARY.md
 DEVELOPMENT_REPORT.md
 
+# 本地批处理文件（不上传到 GitHub）
+*.bat
+
 
 # Editor directories and files
 .vscode/*
