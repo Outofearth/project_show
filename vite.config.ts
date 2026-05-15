@@ -453,7 +453,7 @@ const apiPlugin = () => {
 }
 
 export default defineConfig({
-  base: process.env.GITHUB_PAGES ? '/project_show/' : '/',
+  base: '/project_show/',
   plugins: [vue(), apiPlugin()],
   resolve: {
     alias: {

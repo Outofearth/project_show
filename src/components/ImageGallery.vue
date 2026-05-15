@@ -81,9 +81,8 @@ const getMediaUrl = (mediaPath: string): string => {
     }
     return `/mounted/${mediaPath}`
   }
-  const base = import.meta.env.GITHUB_PAGES ? '/project_show/' : '/'
   const encodedPath = encodeURIComponent(mediaPath).replace(/%2F/g, '/')
-  return `${base}${encodedPath}`
+  return `/project_show/${encodedPath}`
 }
 
 watch(() => props.folder, () => {
