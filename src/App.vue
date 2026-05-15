@@ -6,6 +6,7 @@ import FolderIndex from './components/FolderIndex.vue'
 import ImageGallery from './components/ImageGallery.vue'
 import UnlockModal from './components/UnlockModal.vue'
 import MountDialog from './components/MountDialog.vue'
+import ImageUploader from './components/ImageUploader.vue'
 import { projects as defaultProjects, type ProjectItem } from './data/projects'
 import { scanProjects, type FolderItem } from './utils/scanner'
 import { loadStaticData, shouldUseStaticData } from './utils/static-data'
@@ -119,62 +120,81 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
-    <header class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
-      <div class="max-w-screen-2xl mx-auto px-4 py-3 sm:py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <button
-              @click="toggleMobileMenu"
-              class="lg:hidden w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg mr-2"
-            >
-              <Menu v-if="!showMobileMenu" class="w-6 h-6" />
-              <X v-else class="w-6 h-6" />
-            </button>
-            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <ImageIcon class="w-6 h-6 text-white" />
-            </div>
-            <div class="hidden sm:block">
-              <h1 class="text-lg sm:text-xl font-bold text-gray-800">AI设计作品集</h1>
-              <p class="text-xs sm:text-sm text-gray-500">展示AI生成的创意设计作品</p>
-            </div>
+    <header class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40 px-4 sm:px-6 lg:px-6">
+      <div class="flex items-center justify-between py-3 sm:py-4">
+        <div class="flex items-center gap-3">
+          <button
+            @click="toggleMobileMenu"
+            class="lg:hidden w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg mr-2"
+          >
+            <Menu v-if="!showMobileMenu" class="w-6 h-6" />
+            <X v-else class="w-6 h-6" />
+          </button>
+          <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <ImageIcon class="w-6 h-6 text-white" />
           </div>
-          <div class="flex items-center gap-3">
-            <button
-              v-if="!isStaticMode"
-              @click="showMountDialog = true"
-              class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-              title="挂载外部文件夹"
-            >
-              <FolderPlus class="w-4 h-4" />
-              <span class="hidden sm:inline">挂载</span>
-            </button>
-            <button
-              @click="loadProjects"
-              :disabled="isLoading"
-              class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw :class="['w-4 h-4', isLoading ? 'animate-spin' : '']" />
-              <span class="hidden sm:inline">{{ isLoading ? '加载中...' : '刷新' }}</span>
-            </button>
+          <div class="hidden sm:block">
+            <h1 class="text-lg sm:text-xl font-bold text-gray-800">AI设计作品集</h1>
+            <p class="text-xs sm:text-sm text-gray-500">展示AI生成的创意设计作品</p>
           </div>
         </div>
-        
-        <div class="mt-3 sm:mt-4">
-          <ProjectTabs 
-            :projects="projects" 
-            :active-project-id="activeProjectId"
-            @select="handleSelectProject"
-          />
+        <div class="flex items-center gap-3">
+          <button
+            v-if="!isStaticMode"
+            @click="showMountDialog = true"
+            class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            title="挂载外部文件夹"
+          >
+            <FolderPlus class="w-4 h-4" />
+            <span class="hidden sm:inline">挂载</span>
+          </button>
+          <button
+            @click="loadProjects"
+            :disabled="isLoading"
+            class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw :class="['w-4 h-4', isLoading ? 'animate-spin' : '']" />
+            <span class="hidden sm:inline">{{ isLoading ? '加载中...' : '刷新' }}</span>
+          </button>
         </div>
+      </div>
+      
+      <div class="pb-3 sm:pb-4">
+        <ProjectTabs 
+          :projects="projects" 
+          :active-project-id="activeProjectId"
+          @select="handleSelectProject"
+        />
       </div>
     </header>
 
     <div class="lg:hidden fixed inset-0 z-40 bg-black/50 transition-opacity" :class="showMobileMenu ? 'opacity-100' : 'opacity-0 pointer-events-none'" @click="showMobileMenu = false"></div>
     
     <div class="flex-1 flex flex-col lg:flex-row min-h-0 max-w-[100vw] overflow-hidden">
+      <main class="flex-1 p-4 sm:p-6 lg:p-6 overflow-hidden">
+        <div v-if="isLoading" class="flex items-center justify-center min-h-[400px]">
+          <div class="text-center">
+            <RefreshCw class="w-8 h-8 text-purple-500 animate-spin mx-auto mb-4" />
+            <p class="text-gray-500">正在扫描项目...</p>
+          </div>
+        </div>
+        
+        <div v-else class="w-full max-w-full">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 w-full overflow-hidden lg:max-w-[calc(100%-260px)]" style="height: calc(100vh - 200px);">
+            <ImageGallery 
+              :folder="currentFolder"
+              :is-unlocked="isUnlocked"
+              @request-unlock="handleRequestUnlock"
+            />
+          </div>
+        </div>
+      </main>
+
       <aside 
-        class="fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform lg:transform-none lg:w-64 lg:flex-shrink-0"
-        :class="showMobileMenu ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+        class="fixed right-0 z-50 w-72 bg-white shadow-xl transform transition-transform lg:w-64"
+        :class="showMobileMenu ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
+        style="top: 110px; bottom: 0;"
+        @wheel.stop
       >
         <div class="p-4 h-full overflow-y-auto">
           <div class="flex items-center justify-between mb-4">
@@ -190,25 +210,6 @@ onMounted(() => {
           />
         </div>
       </aside>
-
-      <main class="flex-1 p-4 sm:p-6 lg:p-6 overflow-hidden">
-        <div v-if="isLoading" class="flex items-center justify-center min-h-[400px]">
-          <div class="text-center">
-            <RefreshCw class="w-8 h-8 text-purple-500 animate-spin mx-auto mb-4" />
-            <p class="text-gray-500">正在扫描项目...</p>
-          </div>
-        </div>
-        
-        <div v-else class="w-full max-w-full">
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 w-full overflow-hidden" style="height: calc(100vh - 200px);">
-            <ImageGallery 
-              :folder="currentFolder"
-              :is-unlocked="isUnlocked"
-              @request-unlock="handleRequestUnlock"
-            />
-          </div>
-        </div>
-      </main>
     </div>
 
     <UnlockModal 
@@ -221,6 +222,14 @@ onMounted(() => {
       v-if="showMountDialog"
       @mount="handleMount"
       @close="showMountDialog = false"
+    />
+    
+    <ImageUploader 
+      :projects="projects"
+      @upload="(projectId, folderPath, files) => { 
+        console.log('Upload to project:', projectId, 'folder:', folderPath, files.length, 'files')
+        loadProjects()
+      }"
     />
   </div>
 </template>

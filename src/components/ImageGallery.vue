@@ -38,6 +38,8 @@ const duration = ref(0)
 const isSeeking = ref(false)
 const seekProgress = ref(0)
 const hasSeeked = ref(false)
+const isFullscreen = ref(false)
+const showFullscreenButton = ref(false)
 let tapTimer: ReturnType<typeof setTimeout> | null = null
 let videoControlsTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -380,6 +382,123 @@ const toggleFullscreen = () => {
   }
 }
 
+const toggleMediaFullscreen = () => {
+  const galleryContainer = document.querySelector('.gallery-fullscreen-container')
+  if (!galleryContainer) return
+  
+  const doc = document as any
+  
+  if (doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement) {
+    exitFullscreen(doc)
+  } else {
+    const container = galleryContainer as any
+    const requestFullscreenOptions = { navigationUI: 'hide' }
+    
+    const tryFullscreen = () => {
+      return new Promise<void>((resolve, reject) => {
+        if (container.requestFullscreen) {
+          container.requestFullscreen(requestFullscreenOptions).then(resolve).catch(reject)
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen(requestFullscreenOptions).then(resolve).catch(reject)
+        } else if (container.webkitRequestFullScreen) {
+          try {
+            container.webkitRequestFullScreen(requestFullscreenOptions)
+            resolve()
+          } catch (e) {
+            reject(e)
+          }
+        } else {
+          reject(new Error('No fullscreen API available'))
+        }
+      })
+    }
+    
+    tryFullscreen().then(() => {
+      isFullscreen.value = true
+    }).catch((err: any) => {
+      console.error('Native fullscreen failed, trying CSS fallback:', err)
+      enableCssFullscreen()
+    })
+  }
+}
+
+const exitFullscreen = (doc: any) => {
+  if (doc.exitFullscreen) {
+    doc.exitFullscreen()
+  } else if (doc.webkitExitFullscreen) {
+    doc.webkitExitFullscreen()
+  } else if (doc.mozCancelFullScreen) {
+    doc.mozCancelFullScreen()
+  } else if (doc.msExitFullscreen) {
+    doc.msExitFullscreen()
+  } else {
+    disableCssFullscreen()
+  }
+  isFullscreen.value = false
+}
+
+const enableCssFullscreen = () => {
+  document.documentElement.classList.add('gallery-fullscreen-active')
+  
+  const safeAreaTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-top')) || 0
+  const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom')) || 0
+  
+  document.documentElement.style.setProperty('--safe-area-top', `${safeAreaTop}px`)
+  document.documentElement.style.setProperty('--safe-area-bottom', `${safeAreaBottom}px`)
+  
+  isFullscreen.value = true
+  document.addEventListener('keydown', handleEscapeKey)
+}
+
+const disableCssFullscreen = () => {
+  document.documentElement.classList.remove('gallery-fullscreen-active')
+  isFullscreen.value = false
+  document.removeEventListener('keydown', handleEscapeKey)
+}
+
+const handleEscapeKey = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && isFullscreen.value) {
+    const doc = document as any
+    if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+      exitFullscreen(doc)
+    } else {
+      disableCssFullscreen()
+    }
+  }
+}
+
+const handleFullscreenChange = () => {
+  const doc = document as any
+  isFullscreen.value = !!(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement)
+}
+
+const checkMobileAndShowButton = () => {
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    showFullscreenButton.value = true
+  }
+}
+
+const detectFoldable = () => {
+  const screenWidth = window.innerWidth
+  const screenHeight = window.innerHeight
+  const aspectRatio = screenWidth / screenHeight
+  
+  const isUnfolded = aspectRatio > 1.5 && screenWidth > 1000
+  const isTabletLike = screenWidth >= 720 && screenHeight >= 720
+  
+  if (isUnfolded) {
+    document.documentElement.classList.add('foldable-unfolded')
+  } else {
+    document.documentElement.classList.remove('foldable-unfolded')
+  }
+  
+  if (isTabletLike) {
+    document.documentElement.classList.add('tablet-mode')
+  } else {
+    document.documentElement.classList.remove('tablet-mode')
+  }
+}
+
 let wheelHandler: ((e: WheelEvent) => void) | null = null
 let mouseMoveHandler: ((e: MouseEvent) => void) | null = null
 let mouseUpHandler: ((e: MouseEvent) => void) | null = null
@@ -391,6 +510,12 @@ onMounted(() => {
   document.addEventListener('wheel', wheelHandler, { passive: false })
   document.addEventListener('mousemove', mouseMoveHandler)
   document.addEventListener('mouseup', mouseUpHandler)
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+  checkMobileAndShowButton()
+  detectFoldable()
+  
+  window.addEventListener('resize', detectFoldable)
+  window.addEventListener('orientationchange', detectFoldable)
 })
 
 onUnmounted(() => {
@@ -403,6 +528,9 @@ onUnmounted(() => {
   if (mouseUpHandler) {
     document.removeEventListener('mouseup', mouseUpHandler)
   }
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  window.removeEventListener('resize', detectFoldable)
+  window.removeEventListener('orientationchange', detectFoldable)
   if (tapTimer) {
     clearTimeout(tapTimer)
   }
@@ -478,229 +606,241 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div 
-          v-if="currentMedia"
-          @dblclick="handleDoubleClick"
-          @mousedown="handleMouseDown"
-          @mousemove="handleMouseMove"
-          @mouseup="handleMouseUp"
-          @mouseleave="handleMouseLeave"
-          @touchstart="handleTouchStart"
-          @touchmove="handleTouchMove"
-          @touchend="handleTouchEnd"
-          @click="showSpeedMenu = false"
-          :class="[
-            'min-h-[300px] flex items-center justify-center media-container',
-            canDrag && 'cursor-grab active:cursor-grabbing'
-          ]"
+        <button
+          v-if="showFullscreenButton && currentMedia && !isVideo && !showBack"
+          @click="toggleMediaFullscreen"
+          class="absolute top-2 sm:top-4 right-2 sm:right-4 w-8 h-8 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center transition-all duration-200 z-10 md:hidden"
         >
-          <Transition name="fade" mode="out-in">
-            <div v-if="!showBack" key="front" class="flex items-center justify-center p-4 relative w-full">
-              <template v-if="isVideo">
-                <div class="flex flex-col items-center gap-3 w-full">
-                  <div class="relative max-w-full max-h-[500px]">
-                    <video
-                      ref="videoRef"
-                      :src="getMediaUrl(currentMedia.path)"
-                      class="max-w-full max-h-[500px] object-contain rounded-lg shadow-lg"
-                      preload="metadata"
-                      @click="handleVideoClick"
-                      @play="isVideoPlaying = true"
-                      @pause="isVideoPlaying = false"
-                      @volumechange="videoVolume = videoRef?.volume || 0.1"
-                      @timeupdate="updateVideoTime"
-                      @loadedmetadata="videoLoaded = true; applyVideoSettings(); updateVideoTime()"
-                      @loadeddata="videoLoaded = true; applyVideoSettings()"
-                    />
-                    
-                    <div 
-                      v-if="!isVideoPlaying && videoLoaded"
-                      class="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    >
-                      <button
-                        @click.stop="toggleVideoPlay"
-                        class="w-20 h-20 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center transition-all duration-200 pointer-events-auto"
+          <Maximize class="w-4 h-4 text-white" />
+        </button>
+
+        <div 
+          class="gallery-fullscreen-container w-full h-full"
+        >
+          <div 
+            v-if="currentMedia"
+            @dblclick="handleDoubleClick"
+            @mousedown="handleMouseDown"
+            @mousemove="handleMouseMove"
+            @mouseup="handleMouseUp"
+            @mouseleave="handleMouseLeave"
+            @touchstart="handleTouchStart"
+            @touchmove="handleTouchMove"
+            @touchend="handleTouchEnd"
+            @click="showSpeedMenu = false"
+            :class="[
+              'min-h-[300px] flex items-center justify-center media-container',
+              canDrag && 'cursor-grab active:cursor-grabbing'
+            ]"
+          >
+            <Transition name="fade" mode="out-in">
+              <div v-if="!showBack" key="front" class="flex items-center justify-center p-4 relative w-full">
+                <template v-if="isVideo">
+                  <div class="flex flex-col items-center gap-3 w-full">
+                    <div class="relative max-w-full max-h-[500px]">
+                      <video
+                        ref="videoRef"
+                        :src="getMediaUrl(currentMedia.path)"
+                        class="max-w-full max-h-[500px] object-contain rounded-lg shadow-lg"
+                        preload="metadata"
+                        @click="handleVideoClick"
+                        @play="isVideoPlaying = true"
+                        @pause="isVideoPlaying = false"
+                        @volumechange="videoVolume = videoRef?.volume || 0.1"
+                        @timeupdate="updateVideoTime"
+                        @loadedmetadata="videoLoaded = true; applyVideoSettings(); updateVideoTime()"
+                        @loadeddata="videoLoaded = true; applyVideoSettings()"
+                      />
+                      
+                      <div 
+                        v-if="!isVideoPlaying && videoLoaded"
+                        class="absolute inset-0 flex items-center justify-center pointer-events-none"
                       >
-                        <Play class="w-10 h-10 text-white ml-1" />
-                      </button>
-                    </div>
-
-                    <div v-if="!videoLoaded" class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
-                      <div class="text-white">
-                        <RefreshCw class="w-8 h-8 text-white animate-spin mx-auto mb-2" />
-                        <span class="text-sm">加载中...</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Transition name="fade">
-                    <div 
-                      v-if="showVideoControls || !isVideoPlaying"
-                      class="w-full max-w-2xl bg-black/80 backdrop-blur-sm rounded-xl p-3"
-                    >
-                      <div class="flex items-center gap-3">
                         <button
                           @click.stop="toggleVideoPlay"
-                          class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                          class="w-20 h-20 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center transition-all duration-200 pointer-events-auto"
                         >
-                          <Pause v-if="isVideoPlaying" class="w-4 h-4" />
-                          <Play v-else class="w-4 h-4 ml-0.5" />
-                        </button>
-                        
-                        <span class="text-white text-xs min-w-[60px] text-right">
-                          {{ Math.floor(currentTime / 60) }}:{{ String(Math.floor(currentTime % 60)).padStart(2, '0') }}
-                          /
-                          {{ Math.floor(duration / 60) }}:{{ String(Math.floor(duration % 60)).padStart(2, '0') }}
-                        </span>
-                        
-                        <div class="w-36 h-2">
-                          <input
-                            ref="progressRef"
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            :value="isSeeking ? seekProgress : (duration > 0 ? (currentTime / duration * 100) : 0)"
-                            @mousedown="isSeeking = true; hasSeeked = false"
-                            @mouseup="isSeeking = false; if (hasSeeked) { handleVideoSeek(seekProgress / 100); hasSeeked = false }"
-                            @mouseleave="isSeeking = false; if (hasSeeked) { handleVideoSeek(seekProgress / 100); hasSeeked = false }"
-                            @input="(e) => {
-                              seekProgress = Number((e.target as HTMLInputElement).value)
-                              hasSeeked = true
-                            }"
-                            class="w-full h-2 bg-white/30 rounded-full appearance-none cursor-pointer
-                                   [&::-webkit-slider-thumb]:appearance-none
-                                   [&::-webkit-slider-thumb]:w-4
-                                   [&::-webkit-slider-thumb]:h-4
-                                   [&::-webkit-slider-thumb]:bg-white
-                                   [&::-webkit-slider-thumb]:rounded-full
-                                   [&::-webkit-slider-thumb]:shadow-lg
-                                   [&::-webkit-slider-runnable-track]:h-2
-                                   [&::-webkit-slider-runnable-track]:bg-purple-500
-                                   [&::-webkit-slider-runnable-track]:rounded-full
-                                   [&::-moz-range-thumb]:w-4
-                                   [&::-moz-range-thumb]:h-4
-                                   [&::-moz-range-thumb]:bg-white
-                                   [&::-moz-range-thumb]:rounded-full
-                                   [&::-moz-range-thumb]:border-0
-                                   [&::-moz-range-track]:h-2
-                                   [&::-moz-range-track]:bg-white/30
-                                   [&::-moz-range-track]:rounded-full"
-                          />
-                        </div>
-                        
-                        <div class="flex items-center gap-2">
-                          <button
-                            @click.stop="toggleVideoMute"
-                            class="w-6 h-6 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
-                          >
-                            <VolumeX v-if="isVideoMuted || videoVolume === 0" class="w-3 h-3" />
-                            <Volume2 v-else class="w-3 h-3" />
-                          </button>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            :value="videoVolume"
-                            @input="(e) => setVideoVolume(Number((e.target as HTMLInputElement).value))"
-                            class="w-16 h-1 bg-white/30 rounded-full appearance-none cursor-pointer"
-                          />
-                          <span class="text-white text-xs w-8">{{ Math.round(videoVolume * 100) }}%</span>
-                        </div>
-                        
-                        <div class="relative">
-                          <button
-                            @click.stop="showSpeedMenu = !showSpeedMenu"
-                            class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors text-xs font-medium"
-                          >
-                            {{ playbackSpeed }}x
-                          </button>
-                          <Transition name="fade">
-                            <div 
-                              v-if="showSpeedMenu"
-                              class="absolute bottom-full right-0 mb-2 bg-black/90 backdrop-blur-sm rounded-lg overflow-hidden"
-                              @click.stop
-                            >
-                              <button
-                                v-for="speed in [0.5, 0.75, 1, 1.25, 1.5, 2]"
-                                :key="speed"
-                                @click="setPlaybackSpeed(speed)"
-                                :class="[
-                                  'w-full px-3 py-2 text-sm text-left transition-colors',
-                                  playbackSpeed === speed ? 'bg-purple-600 text-white' : 'text-white/80 hover:bg-white/10'
-                                ]"
-                              >
-                                {{ speed }}x
-                              </button>
-                            </div>
-                          </Transition>
-                        </div>
-                        
-                        <button
-                          @click.stop="toggleFullscreen"
-                          class="w-6 h-6 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
-                        >
-                          <Maximize class="w-3 h-3" />
+                          <Play class="w-10 h-10 text-white ml-1" />
                         </button>
                       </div>
+
+                      <div v-if="!videoLoaded" class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
+                        <div class="text-white">
+                          <RefreshCw class="w-8 h-8 text-white animate-spin mx-auto mb-2" />
+                          <span class="text-sm">加载中...</span>
+                        </div>
+                      </div>
                     </div>
-                  </Transition>
-                </div>
-              </template>
 
-              <template v-else>
-                <img 
-                  :src="getMediaUrl(currentMedia.path)" 
-                  :alt="currentMedia.name"
-                  :class="[
-                    'rounded-lg shadow-lg',
-                    isGif ? 'max-h-[500px]' : 'max-h-[500px]'
-                  ]"
-                  :style="{ 
-                    maxWidth: '100%',
-                    transform: scale > 1 ? `scale(${scale}) translate(${position.x}px, ${position.y}px)` : 'none',
-                    transition: scale > 1 ? 'none' : 'transform 0.1s ease',
-                    cursor: canDrag ? 'grab' : 'default'
-                  }"
-                  draggable="false"
-                />
-                <div class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1.5 rounded-full text-xs z-10">
-                  <span v-if="!hasPrompt">查看图片</span>
-                  <span v-else-if="!isUnlocked">双击解锁查看详情</span>
-                  <span v-else>双击查看详情</span>
-                </div>
-              </template>
-            </div>
+                    <Transition name="fade">
+                      <div 
+                        v-if="showVideoControls || !isVideoPlaying"
+                        class="w-full max-w-2xl bg-black/80 backdrop-blur-sm rounded-xl p-3"
+                      >
+                        <div class="flex items-center gap-3">
+                          <button
+                            @click.stop="toggleVideoPlay"
+                            class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                          >
+                            <Pause v-if="isVideoPlaying" class="w-4 h-4" />
+                            <Play v-else class="w-4 h-4 ml-0.5" />
+                          </button>
+                          
+                          <span class="text-white text-xs min-w-[60px] text-right">
+                            {{ Math.floor(currentTime / 60) }}:{{ String(Math.floor(currentTime % 60)).padStart(2, '0') }}
+                            /
+                            {{ Math.floor(duration / 60) }}:{{ String(Math.floor(duration % 60)).padStart(2, '0') }}
+                          </span>
+                          
+                          <div class="w-36 h-2">
+                            <input
+                              ref="progressRef"
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              :value="isSeeking ? seekProgress : (duration > 0 ? (currentTime / duration * 100) : 0)"
+                              @mousedown="isSeeking = true; hasSeeked = false"
+                              @mouseup="isSeeking = false; if (hasSeeked) { handleVideoSeek(seekProgress / 100); hasSeeked = false }"
+                              @mouseleave="isSeeking = false; if (hasSeeked) { handleVideoSeek(seekProgress / 100); hasSeeked = false }"
+                              @input="(e) => {
+                                seekProgress = Number((e.target as HTMLInputElement).value)
+                                hasSeeked = true
+                              }"
+                              class="w-full h-2 bg-white/30 rounded-full appearance-none cursor-pointer
+                                     [&::-webkit-slider-thumb]:appearance-none
+                                     [&::-webkit-slider-thumb]:w-4
+                                     [&::-webkit-slider-thumb]:h-4
+                                     [&::-webkit-slider-thumb]:bg-white
+                                     [&::-webkit-slider-thumb]:rounded-full
+                                     [&::-webkit-slider-thumb]:shadow-lg
+                                     [&::-webkit-slider-runnable-track]:h-2
+                                     [&::-webkit-slider-runnable-track]:bg-purple-500
+                                     [&::-webkit-slider-runnable-track]:rounded-full
+                                     [&::-moz-range-thumb]:w-4
+                                     [&::-moz-range-thumb]:h-4
+                                     [&::-moz-range-thumb]:bg-white
+                                     [&::-moz-range-thumb]:rounded-full
+                                     [&::-moz-range-thumb]:border-0
+                                     [&::-moz-range-track]:h-2
+                                     [&::-moz-range-track]:bg-white/30
+                                     [&::-moz-range-track]:rounded-full"
+                            />
+                          </div>
+                          
+                          <div class="flex items-center gap-2">
+                            <button
+                              @click.stop="toggleVideoMute"
+                              class="w-6 h-6 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                            >
+                              <VolumeX v-if="isVideoMuted || videoVolume === 0" class="w-3 h-3" />
+                              <Volume2 v-else class="w-3 h-3" />
+                            </button>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.1"
+                              :value="videoVolume"
+                              @input="(e) => setVideoVolume(Number((e.target as HTMLInputElement).value))"
+                              class="w-16 h-1 bg-white/30 rounded-full appearance-none cursor-pointer"
+                            />
+                            <span class="text-white text-xs w-8">{{ Math.round(videoVolume * 100) }}%</span>
+                          </div>
+                          
+                          <div class="relative">
+                            <button
+                              @click.stop="showSpeedMenu = !showSpeedMenu"
+                              class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors text-xs font-medium"
+                            >
+                              {{ playbackSpeed }}x
+                            </button>
+                            <Transition name="fade">
+                              <div 
+                                v-if="showSpeedMenu"
+                                class="absolute bottom-full right-0 mb-2 bg-black/90 backdrop-blur-sm rounded-lg overflow-hidden"
+                                @click.stop
+                              >
+                                <button
+                                  v-for="speed in [0.5, 0.75, 1, 1.25, 1.5, 2]"
+                                  :key="speed"
+                                  @click="setPlaybackSpeed(speed)"
+                                  :class="[
+                                    'w-full px-3 py-2 text-sm text-left transition-colors',
+                                    playbackSpeed === speed ? 'bg-purple-600 text-white' : 'text-white/80 hover:bg-white/10'
+                                  ]"
+                                >
+                                  {{ speed }}x
+                                </button>
+                              </div>
+                            </Transition>
+                          </div>
+                          
+                          <button
+                            @click.stop="toggleFullscreen"
+                            class="w-6 h-6 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                          >
+                            <Maximize class="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </Transition>
+                  </div>
+                </template>
 
-            <div v-else key="back" class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 flex flex-col">
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-purple-400 text-xs font-medium">Prompt 内容</span>
+                <template v-else>
+                  <img 
+                    :src="getMediaUrl(currentMedia.path)" 
+                    :alt="currentMedia.name"
+                    :class="[
+                      'rounded-lg shadow-lg',
+                      isGif ? 'max-h-[500px]' : 'max-h-[500px]'
+                    ]"
+                    :style="{ 
+                      maxWidth: '100%',
+                      transform: scale > 1 ? `scale(${scale}) translate(${position.x}px, ${position.y}px)` : 'none',
+                      transition: scale > 1 ? 'none' : 'transform 0.1s ease',
+                      cursor: canDrag ? 'grab' : 'default'
+                    }"
+                    draggable="false"
+                  />
+                  <div class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1.5 rounded-full text-xs z-10">
+                    <span v-if="!hasPrompt">查看图片</span>
+                    <span v-else-if="!isUnlocked">双击解锁查看详情</span>
+                    <span v-else>双击查看详情</span>
+                  </div>
+                </template>
+              </div>
+
+              <div v-else key="back" class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 flex flex-col">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-purple-400 text-xs font-medium">Prompt 内容</span>
+                  <button
+                    @click.stop="copyToClipboard"
+                    :class="[
+                      'flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all duration-200',
+                      copied 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    ]"
+                  >
+                    <Check v-if="copied" class="w-3 h-3" />
+                    <Copy v-else class="w-3 h-3" />
+                    <span>{{ copied ? '已复制' : '复制' }}</span>
+                  </button>
+                </div>
+                <div class="flex-1 overflow-auto bg-black/30 rounded-lg p-3">
+                  <pre class="text-gray-200 text-xs whitespace-pre-wrap font-mono leading-relaxed">{{ promptContent || '加载中...' }}</pre>
+                </div>
                 <button
-                  @click.stop="copyToClipboard"
-                  :class="[
-                    'flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all duration-200',
-                    copied 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  ]"
+                  @click.stop="showBack = false"
+                  class="mt-3 w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors"
                 >
-                  <Check v-if="copied" class="w-3 h-3" />
-                  <Copy v-else class="w-3 h-3" />
-                  <span>{{ copied ? '已复制' : '复制' }}</span>
+                  返回
                 </button>
               </div>
-              <div class="flex-1 overflow-auto bg-black/30 rounded-lg p-3">
-                <pre class="text-gray-200 text-xs whitespace-pre-wrap font-mono leading-relaxed">{{ promptContent || '加载中...' }}</pre>
-              </div>
-              <button
-                @click.stop="showBack = false"
-                class="mt-3 w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors"
-              >
-                返回
-              </button>
-            </div>
-          </Transition>
+            </Transition>
+          </div>
         </div>
 
         <button
@@ -779,5 +919,68 @@ input[type="range"]::-moz-range-thumb {
   background: #8b5cf6;
   cursor: pointer;
   border: none;
+}
+
+:deep(.gallery-fullscreen-active) {
+  overflow: hidden;
+}
+
+:deep(.gallery-fullscreen-active) .gallery-fullscreen-container {
+  position: fixed;
+  top: env(safe-area-inset-top, 0);
+  left: 0;
+  right: 0;
+  bottom: env(safe-area-inset-bottom, 0);
+  z-index: 9999;
+  background: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.gallery-fullscreen-active) .gallery-fullscreen-container img {
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 20px);
+  object-fit: contain;
+}
+
+@media screen and (min-width: 720px) and (min-height: 720px) {
+  .media-container img {
+    max-height: 60vh;
+  }
+}
+
+@media screen and (min-width: 1000px) and (min-height: 800px) {
+  .media-container img {
+    max-height: 65vh;
+  }
+}
+
+@media screen and (min-width: 1200px) and (min-height: 900px) {
+  .media-container img {
+    max-height: 70vh;
+  }
+}
+
+@media screen and (max-height: 500px) {
+  .media-container img {
+    max-height: 40vh;
+  }
+}
+
+:deep(.foldable-unfolded) .media-container {
+  max-height: 75vh;
+}
+
+:deep(.foldable-unfolded) .media-container img {
+  max-height: 70vh;
+}
+
+:deep(.tablet-mode) .media-container {
+  max-height: 65vh;
+}
+
+:deep(.tablet-mode) .media-container img {
+  max-height: 60vh;
 }
 </style>

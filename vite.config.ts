@@ -368,6 +368,187 @@ const apiPlugin = () => {
           return
         }
 
+        if (req.url === '/api/test-projects' || req.url === '/project_show/api/test-projects') {
+          const publicDir = path.join(__dirname, 'public')
+          const projects = fs.existsSync(publicDir) 
+            ? fs.readdirSync(publicDir).filter(f => fs.statSync(path.join(publicDir, f)).isDirectory())
+            : []
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ 
+            success: true, 
+            publicDir: publicDir,
+            exists: fs.existsSync(publicDir),
+            projects: projects 
+          }))
+          return
+        }
+
+        if (req.url === '/api/upload' || req.url === '/project_show/api/upload') {
+          if (req.method !== 'POST') {
+            res.writeHead(405, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: false, message: '不支持的请求方法' }))
+            return
+          }
+
+          const boundary = req.headers['content-type']?.split('boundary=')[1]
+          if (!boundary) {
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: false, message: '缺少边界标识' }))
+            return
+          }
+
+          const bodyBuffer = await new Promise<Buffer>((resolve) => {
+            const chunks: Buffer[] = []
+            req.on('data', (chunk: Buffer) => {
+              chunks.push(chunk)
+            })
+            req.on('end', () => {
+              resolve(Buffer.concat(chunks))
+            })
+          })
+
+          try {
+            let projectId = ''
+            let folderPath = ''
+            const files: { filename: string; content: Buffer }[] = []
+
+            const boundaryBuffer = Buffer.from(`--${boundary}`)
+            const crlfCrlf = Buffer.from('\r\n\r\n')
+
+            let start = 0
+            while (start < bodyBuffer.length) {
+              const boundaryIndex = bodyBuffer.indexOf(boundaryBuffer, start)
+              if (boundaryIndex === -1) break
+
+              start = boundaryIndex + boundaryBuffer.length
+
+              const headerEndIndex = bodyBuffer.indexOf(crlfCrlf, start)
+              if (headerEndIndex === -1) break
+
+              const headerBuffer = bodyBuffer.slice(start, headerEndIndex)
+              const header = headerBuffer.toString('utf-8')
+
+              start = headerEndIndex + crlfCrlf.length
+
+              const nextBoundaryIndex = bodyBuffer.indexOf(boundaryBuffer, start)
+              if (nextBoundaryIndex === -1) break
+
+              let contentEndIndex = nextBoundaryIndex - 2
+              if (bodyBuffer[contentEndIndex] === 0x0a && bodyBuffer[contentEndIndex - 1] === 0x0d) {
+                contentEndIndex -= 2
+              }
+
+              const contentBuffer = bodyBuffer.slice(start, contentEndIndex)
+
+              const filenameMatch = header.match(/filename="([^"]+)"/)
+              const nameMatch = header.match(/name="([^"]+)"/)
+
+              if (nameMatch && nameMatch[1] === 'projectId') {
+                projectId = decodeURIComponent(contentBuffer.toString('utf-8').trim())
+              } else if (nameMatch && nameMatch[1] === 'folderPath') {
+                folderPath = decodeURIComponent(contentBuffer.toString('utf-8').trim())
+              } else if (filenameMatch) {
+                const filename = filenameMatch[1]
+                files.push({
+                  filename,
+                  content: contentBuffer
+                })
+              }
+
+              start = nextBoundaryIndex
+            }
+
+            console.log('Received projectId:', projectId)
+            console.log('Received folderPath:', folderPath)
+            console.log('Number of files:', files.length)
+
+            if (!projectId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ success: false, message: '缺少项目ID' }))
+              return
+            }
+
+            if (files.length === 0) {
+              res.writeHead(400, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ success: false, message: '没有上传文件' }))
+              return
+            }
+
+            const publicDir = path.join(__dirname, 'public')
+            const projectPath = path.join(publicDir, projectId)
+            
+            console.log('Checking project path:', projectPath)
+            console.log('Path exists:', fs.existsSync(projectPath))
+            
+            if (!fs.existsSync(projectPath)) {
+              const availableProjects = fs.existsSync(publicDir) 
+                ? fs.readdirSync(publicDir).filter(f => fs.statSync(path.join(publicDir, f)).isDirectory())
+                : []
+              
+              res.writeHead(400, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ 
+                success: false, 
+                message: '项目目录不存在',
+                projectId: projectId,
+                projectPath: projectPath,
+                availableProjects: availableProjects
+              }))
+              return
+            }
+
+            let targetPath = projectPath
+
+            if (folderPath && folderPath.trim && folderPath.trim().length > 0) {
+              const cleanFolderPath = folderPath.trim()
+              const folderName = cleanFolderPath.split('/').pop() || cleanFolderPath
+              const possiblePaths = [
+                path.join(projectPath, cleanFolderPath),
+                path.join(projectPath, folderName)
+              ]
+              
+              let foundPath = ''
+              for (const p of possiblePaths) {
+                if (fs.existsSync(p)) {
+                  foundPath = p
+                  break
+                }
+              }
+              
+              if (!foundPath) {
+                res.writeHead(400, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ success: false, message: '指定的文件夹不存在' }))
+                return
+              }
+              
+              targetPath = foundPath
+            } else {
+              const date = new Date()
+              const dateFolderName = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+              targetPath = path.join(projectPath, dateFolderName)
+              if (!fs.existsSync(targetPath)) {
+                fs.mkdirSync(targetPath, { recursive: true })
+              }
+            }
+
+            let uploadedCount = 0
+            for (const file of files) {
+              const filePath = path.join(targetPath, file.filename)
+              fs.writeFileSync(filePath, file.content)
+              uploadedCount++
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: true, message: `成功上传 ${uploadedCount} 个文件`, count: uploadedCount }))
+            return
+          } catch (error: unknown) {
+            console.error('上传文件失败:', error)
+            res.writeHead(500, { 'Content-Type': 'application/json' })
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            res.end(JSON.stringify({ success: false, message: '上传失败: ' + errorMsg }))
+            return
+          }
+        }
+
         if (req.url?.startsWith('/mounted/')) {
           let encodedRelativePath = req.url.replace('/mounted/', '')
           

@@ -344,6 +344,269 @@ const handleTouchMove = (e: TouchEvent) => {
 
 ---
 
+### 六、上传功能问题
+
+#### 问题11：上传时提示"项目目录不存在"
+
+**现象**：
+- 移动端上传图片时，无论是否选择文件夹，都提示"项目目录不存在"
+- 测试脚本显示项目目录确实存在
+
+**原因分析**：
+- API 路径不匹配：前端发送请求到 `/project_show/api/upload`，但后端只监听 `/api/upload`
+- 中文项目ID编码问题：前端发送的中文项目ID未正确编码，后端收到乱码
+
+**解决方案**：
+```typescript
+// vite.config.ts - 添加路径支持
+if (req.url === '/api/upload' || req.url === '/project_show/api/upload') {
+  // 处理上传逻辑
+}
+
+// 后端解码中文参数
+projectId = decodeURIComponent(contentBuffer.toString('utf-8').trim())
+```
+
+**预防措施**：
+- API 端点需要同时支持带前缀和不带前缀的路径
+- 中文参数需要进行 URL 编码/解码
+
+---
+
+#### 问题12：上传的图片无法查看
+
+**现象**：
+- 图片上传成功但无法显示
+- 图片文件损坏，无法打开
+
+**原因分析**：
+- 为解决中文项目ID问题，将 `bodyBuffer.toString('binary')` 改为 `bodyBuffer.toString('utf-8')`
+- `utf-8` 编码会损坏二进制图片数据
+
+**解决方案**：
+```typescript
+// 重写 multipart 解析逻辑，直接操作 Buffer
+const bodyBuffer = await new Promise<Buffer>((resolve) => {
+  const chunks: Buffer[] = []
+  req.on('data', (chunk: Buffer) => {
+    chunks.push(chunk)
+  })
+  req.on('end', () => {
+    resolve(Buffer.concat(chunks))
+  })
+})
+
+// 文本字段使用 utf-8 解码
+projectId = decodeURIComponent(contentBuffer.toString('utf-8').trim())
+
+// 二进制文件直接保留 Buffer
+files.push({
+  filename,
+  content: contentBuffer  // 不进行字符串转换
+})
+```
+
+**预防措施**：
+- 文本字段和二进制文件需要分开处理
+- 二进制数据不应转换为字符串
+
+---
+
+### 七、全屏浏览功能
+
+#### 问题13：移动端全屏浏览功能
+
+**现象**：
+- 用户需要在移动端全屏查看图片
+- 原有功能不支持全屏模式
+
+**解决方案**：
+```typescript
+const toggleMediaFullscreen = () => {
+  const galleryContainer = document.querySelector('.gallery-fullscreen-container')
+  if (!galleryContainer) return
+  
+  // 尝试原生全屏 API
+  if (container.requestFullscreen) {
+    container.requestFullscreen({ navigationUI: 'hide' })
+  } else if (container.webkitRequestFullscreen) {
+    container.webkitRequestFullscreen({ navigationUI: 'hide' })
+  } else {
+    // CSS 全屏回退
+    enableCssFullscreen()
+  }
+}
+```
+
+**预防措施**：
+- 实现多浏览器兼容性方案
+- 提供 CSS 回退方案
+
+---
+
+#### 问题14：Safari 全屏兼容性问题
+
+**现象**：
+- Chrome 浏览器全屏正常工作
+- Safari 浏览器无法进入全屏模式
+
+**原因分析**：
+- Safari 使用 WebKit 前缀的全屏 API
+- iOS Safari 对全屏 API 有严格限制（必须来自用户交互）
+
+**解决方案**：
+```typescript
+// 支持多种浏览器前缀
+if (container.webkitRequestFullscreen) {
+  container.webkitRequestFullscreen(options)
+} else if (container.webkitRequestFullScreen) {
+  container.webkitRequestFullScreen(options)
+}
+
+// CSS 回退方案
+const enableCssFullscreen = () => {
+  document.documentElement.classList.add('gallery-fullscreen-active')
+}
+```
+
+**当前状态**：部分解决，原生全屏在某些 Safari 版本仍有问题，CSS 回退方案可工作
+
+---
+
+### 八、部署与环境问题
+
+#### 问题15：GitHub Pages 路径配置错误
+
+**现象**：
+- 本地运行正常，但部署到 GitHub Pages 后图片无法显示
+- 控制台显示 404 错误，路径缺少项目名前缀
+
+**原因分析**：
+- 本地开发服务器运行在 `http://localhost:5175/`
+- GitHub Pages 部署在 `https://username.github.io/project_show/`
+- Vite 的 `base` 配置未正确设置，导致资源路径缺少 `/project_show/` 前缀
+
+**解决方案**：
+```typescript
+// vite.config.ts
+export default defineConfig({
+  base: '/project_show/',  // 设置正确的 base 路径
+})
+```
+
+**预防措施**：
+- 在 `vite.config.ts` 中设置正确的 `base` 路径
+- 使用环境变量适配不同环境：
+  ```typescript
+  const base = process.env.NODE_ENV === 'production' ? '/project_show/' : '/'
+  ```
+
+---
+
+#### 问题16：静态环境下 API 不可用
+
+**现象**：
+- 本地可以正常加载 Prompt 文本
+- GitHub Pages 上 Prompt 无法加载，显示空白
+
+**原因分析**：
+- 本地开发时使用 Vite 插件提供 `/api/text/` 等 API 端点
+- GitHub Pages 是纯静态文件托管，无法执行 Node.js 代码
+- 静态页面无法调用后端 API
+
+**解决方案**：
+```typescript
+// scripts/generate-static-data.ts
+// 预先生成静态数据，包含文本内容
+const getTextContent = (folderPath: string): string => {
+  const files = fs.readdirSync(folderPath)
+  const textFiles = files.filter(file => 
+    file.toLowerCase().endsWith('.txt') || file.toLowerCase().endsWith('.md')
+  )
+  if (textFiles.length > 0) {
+    return fs.readFileSync(path.join(folderPath, textFiles[0]), 'utf-8')
+  }
+  return ''
+}
+```
+
+```typescript
+// 前端优先使用静态数据中的文本内容
+const loadPromptContent = async () => {
+  if (props.folder.textContent) {
+    promptContent.value = props.folder.textContent
+    return
+  }
+  // 降级到 API（仅本地开发时可用）
+  try {
+    promptContent.value = await loadTextFile(props.folder.path)
+  } catch {
+    promptContent.value = ''
+  }
+}
+```
+
+**预防措施**：
+- 将动态数据预先生成为静态 JSON 文件
+- 前端代码优先使用静态数据，再降级到 API
+- 部署前运行数据生成脚本
+
+---
+
+#### 问题17：环境变量未正确传递
+
+**现象**：
+- 本地构建正常，但 GitHub Actions 构建失败
+- 环境变量 `GITHUB_PAGES` 未被正确设置
+
+**原因分析**：
+- GitHub Actions 工作流中未定义所需的环境变量
+- Vite 配置依赖环境变量但未提供默认值
+
+**解决方案**：
+```yaml
+# .github/workflows/deploy.yml
+env:
+  GITHUB_PAGES: true
+```
+
+或直接在配置中使用固定值：
+```typescript
+base: '/project_show/'  // 直接设置，不依赖环境变量
+```
+
+**预防措施**：
+- 在 GitHub Actions 工作流中明确设置环境变量
+- 为环境变量提供合理的默认值
+- 避免过度依赖环境变量进行配置
+
+---
+
+#### 问题18：静态资源路径编码问题
+
+**现象**：
+- 包含中文的路径在 GitHub Pages 上无法访问
+- 图片路径中的中文导致 404 错误
+
+**原因分析**：
+- URL 中不能直接包含中文字符
+- 前端生成图片路径时未进行 URL 编码
+
+**解决方案**：
+```typescript
+const getMediaUrl = (mediaPath: string): string => {
+  const encodedPath = encodeURIComponent(mediaPath).replace(/%2F/g, '/')
+  return `/project_show/${encodedPath}`
+}
+```
+
+**预防措施**：
+- 所有包含中文的资源路径都需要进行 URL 编码
+- 使用 `encodeURIComponent()` 处理路径
+- 保持 `/` 不被编码以维持路径结构
+
+---
+
 ## 问题解决流程图
 
 ```
@@ -399,6 +662,13 @@ const handleTouchMove = (e: TouchEvent) => {
 - 使用响应式设计
 - 实现触摸手势支持
 - 移动端使用抽屉式菜单
+
+### 6. 部署与环境
+- 配置正确的 Vite `base` 路径
+- 将动态数据静态化（预生成 JSON）
+- 使用环境变量适配不同环境
+- 中文路径需要 URL 编码
+- 部署前验证构建是否成功
 
 ---
 
