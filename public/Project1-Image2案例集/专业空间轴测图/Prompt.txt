@@ -1,0 +1,27 @@
+请根据我提供的空间名称、空间类型和参考资料，生成一张「专业空间轴测信息图 / 分层轴测设计图」。
+
+项目名称：{填写项目名称，例如：广州白云机场T2 / 某商业综合体 / 某校园图书馆 / 某城市公园 / 某酒店大堂}
+空间类型：{填写空间类型，例如：机场交通枢纽 / 商业空间 / 校园建筑 / 公园景观 / 展馆空间 / 酒店空间 / 城市广场}
+需要拆解的空间节点：{填写一个具体区域，例如：出发层落客区 / 到达接客区 / 商业中庭 / 校园入口 / 儿童活动区 / 酒店大堂 / 展馆入口大厅}
+参考资料：我可能会上传平面图、卫星图、实景照片、剖面图、功能说明或风格参考图，请综合参考。
+
+画面要求：
+生成一张白底专业建筑作品集风格的轴测信息图。画面需要是分层轴测或剖切轴测结构，不是普通效果图。请把这个空间节点拆解成清晰的空间层级和功能系统，让观众一眼看懂空间如何组织、如何使用、如何流动。
+
+请在图中表现：
+1、建筑 / 场地基础界面  
+2、主要功能区域  
+3、人流 / 车流 / 游线 / 服务流线  
+4、关键设施、节点、入口、等候区、服务区  
+5、景观、铺装、家具、标识牌、小人、车辆或相关尺度元素  
+6、编号标注、图例、箭头、流线、关键数据小卡片  
+7、有设计感的英文主标题 + 中文副标题  
+
+视觉风格：
+clean white background, professional architectural portfolio layout, exploded axonometric diagram, sectional axonometric diagram, architectural infographic, thin grey linework, light grey building mass, dark grey hardscape, soft green landscape, subtle shadow, orange and blue functional highlights, numbered callouts, bilingual labels, legend, key plan, flow diagram, small human figures, vehicles, trees, wayfinding signs, refined editorial title design.
+
+信息密度：
+画面要有丰富的分层信息、颜色标记、功能标注和图例说明，但整体保持高级、干净、有秩序。不要太空，不要像普通效果图，也不要变成杂乱的信息堆砌。
+
+重要限制：
+如果参考资料不足，可以做概念化设计表达，但不要假装是测绘级复原。真实地点可以基于上传资料和公开印象进行设计化表达，但不要求完全精准还原。最终图应是「空间逻辑表达图」，不是照片级渲染图。
