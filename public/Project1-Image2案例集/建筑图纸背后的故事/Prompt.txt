@@ -1,0 +1,36 @@
+Create an ultra-HD, hyper-realistic miniature floor plan of [LOCATION / BUILDING NAME] spread across a professional architect's drafting table. The scene features [PRIMARY FEATURE 1] emerging dramatically from the blueprint, complete with [DETAILS]. Nearby, [PRIMARY FEATURE 2] rises with [DETAILS AND HUMAN ACTIVITY]. Additional spaces include [PRIMARY FEATURE 3], [PRIMARY FEATURE 4], and [PRIMARY FEATURE 5], each populated with miniature people engaged in realistic activities.
+
+Walls exist simultaneously as technical blueprint lines and fully realized architectural partitions. Floors, furnishings, fixtures, and materials are rendered with extraordinary realism. Ghosted circulation paths reveal movement patterns of guests, staff, and visitors. HVAC, plumbing, electrical, and service systems pulse subtly beneath the structure. Strategic section cuts expose interior layers and vertical relationships between spaces.
+
+Architectural drafting tools including scales, pencils, trace paper, measuring devices, and annotation sketches surround the model. The building appears to physically emerge from the drawing itself, blending technical documentation with miniature reality.
+
+Lighting: [LIGHTING STYLE]
+Camera: cinematic aerial perspective, slight tilt-shift effect
+Materials: ultra-sharp textures, physically accurate surfaces, premium architectural detailing
+Atmosphere: [MOOD / ENVIRONMENT]
+Quality: hyper-realistic, photorealistic, 8K, extreme detail, architecture brought to life
+
+Include "[LOCATION LABEL]" elegantly printed along one edge of the blueprint.
+
+Cheat Sheet
+[LOCATION / BUILDING NAME] → Hotel, restaurant, airport, mall, office, landmark
+[PRIMARY FEATURES] → Lobby, suites, dining area, pool, terminal, rooftop, kitchen
+[DETAILS] → Furniture, guests, staff, décor, vehicles, equipment
+[LIGHTING STYLE] → Golden hour,
+
+在专业建筑师的绘图桌上，绘制[地点/建筑名称]的超高清、超逼真的微缩平面图。场景中，[主要特征1]从蓝图中栩栩如生地呈现，并包含[细节]。附近，[主要特征2]拔地而起，并包含[细节和人物活动]。其他空间包括[主要特征3]、[主要特征4]和[主要特征5]，每个空间都充满了正在进行逼真活动的微缩人物。
+墙体既是技术图纸上的线条，又是完整呈现的建筑隔断。地板、家具、固定装置和材料都以惊人的真实感渲染。隐约可见的动线展现了宾客、员工和访客的移动模式。暖通空调、给排水、电气和服务系统在建筑结构下方微妙地运行。精心设计的剖面图揭示了内部空间层次和垂直空间关系。
+模型周围环绕着建筑绘图工具，包括比例尺、铅笔、描图纸、测量工具和标注草图。建筑仿佛从图纸中跃然而出，将技术文档与微缩现实完美融合。
+照明：[照明风格]
+镜头：电影级航拍视角，轻微移轴效果
+材质：超清晰纹理、物理精度高的表面、优质建筑细节
+氛围：[情绪/环境]
+品质：超逼真、照片级逼真、8K 分辨率、极致细节、栩栩如生的建筑
+在蓝图的一侧边缘优雅地印上“【位置标签】”。
+
+速查表
+
+[地点/建筑名称] → 酒店、餐厅、机场、商场、办公楼、地标
+【主要设施】→ 大堂、套房、餐厅、泳池、候车亭、屋顶露台、厨房
+【详情】→ 家具、客人、员工、装饰、车辆、设备
+【灯光风格】→ 黄金时段，
