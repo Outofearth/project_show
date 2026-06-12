@@ -84,7 +84,7 @@ const getMediaUrl = (mediaPath: string): string => {
     return `/mounted/${mediaPath}`
   }
   const encodedPath = encodeURIComponent(mediaPath).replace(/%2F/g, '/')
-  return `/project_show/${encodedPath}`
+  return `./${encodedPath}`
 }
 
 watch(() => props.folder, () => {
