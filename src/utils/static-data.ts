@@ -46,7 +46,7 @@ const isStaticEnvironment = (): boolean => {
  */
 export const loadStaticData = async (): Promise<StaticDataResponse> => {
   try {
-    const response = await fetch('/project_show/static-data.json')
+    const response = await fetch('./static-data.json')
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
