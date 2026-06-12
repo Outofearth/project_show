@@ -1,0 +1,10 @@
+COUNTRY_NAME:中国
+MONUMENT_NAME:盘山
+
+Create a photorealistic image viewed from inside a natural rocky cave looking outward. The cave opening should be clearly shaped like the recognizable map outline of [COUNTRY_NAME]. Use the country silhouette accurately, including its major geographic contours, extensions, peninsulas, bays, and distinctive coastline features, while making the opening look naturally eroded into the rock rather than like a flat graphic cutout.
+
+The cave interior should be dark, cinematic, and highly realistic, with rough stone walls, layered rock formations, uneven rocky floor, cracks, shadows, subtle moisture, moss, and lichen. The country-shaped opening should frame a bright outdoor scene.
+
+Outside the opening, show a famous landmark or monument from [COUNTRY_NAME], specifically [MONUMENT_NAME], clearly visible and recognizable in the distance or midground. Surround it with a realistic natural or urban landscape appropriate to that monument, such as gardens, river, mountains, harbor, skyline, forest, or desert. Use bright natural daylight outside, with strong contrast between the shadowy cave interior and the sunlit view.
+
+Style: photorealistic, cinematic, ultra-detailed, natural lighting, high depth, realistic textures. No text, no signs, no people in the foreground, no logos, no fantasy elements.
