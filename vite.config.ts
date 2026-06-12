@@ -634,7 +634,7 @@ const apiPlugin = () => {
 }
 
 export default defineConfig({
-  base: '/project_show/',
+  base: './',
   plugins: [vue(), apiPlugin()],
   resolve: {
     alias: {
